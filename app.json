@@ -18,15 +18,23 @@
       "supportsTablet": true,
       "infoPlist": {
         "UIBackgroundModes": [
+          "audio",
           "audio"
-        ]
-      }
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.retainr.io.motivationalalarmapp"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFD700"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "package": "com.retainr.io.motivationalalarmapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,6 +42,11 @@
     "plugins": [
       "expo-av"
     ],
-    "description": "A motivational wake-up alarm app that helps you start your day energized and positive."
+    "description": "A motivational wake-up alarm app that helps you start your day energized and positive.",
+    "extra": {
+      "eas": {
+        "projectId": "84ba394a-506d-4766-9b3f-039f9b8dc4ef"
+      }
+    }
   }
-} 
+}

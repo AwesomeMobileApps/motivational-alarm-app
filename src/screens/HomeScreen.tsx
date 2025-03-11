@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import { AlarmEditScreen } from './AlarmEditScreen';
 import { MotivationalAlarmScreen } from '../components/MotivationalAlarmScreen';
 import { useAlarms } from '../hooks/useAlarms';
 import { useActiveAlarm } from '../hooks/useActiveAlarm';
-import { getNextAlarmTime, formatTime } from '../utils/alarmUtils';
+import { formatTime } from '../utils/alarmUtils';
 
 /**
  * Main home screen of the app - displays alarm list and manages screens
@@ -34,16 +34,13 @@ export const HomeScreen: React.FC = () => {
     toggleAlarmEnabled
   } = useAlarms();
 
-  // Memoize the alarms array to prevent infinite re-renders
-  const memoizedAlarms = useCallback(() => alarms, [alarms]);
-
-  // Track active alarms with memoized alarms array
+  // Track active alarms - pass alarms directly without memoization
   const {
     isAlarmRinging,
     activeAlarm,
     nextAlarmTime,
     dismissAlarm
-  } = useActiveAlarm(memoizedAlarms());
+  } = useActiveAlarm(alarms);
 
   // Handle creating a new alarm
   const handleAddAlarm = useCallback(() => {
@@ -78,7 +75,7 @@ export const HomeScreen: React.FC = () => {
     setCurrentEditAlarm(null);
   }, []);
 
-  // Render empty state when no alarms
+  // Render empty state when no alarms - memoized to prevent recreating on every render
   const renderEmptyState = useCallback(() => {
     return (
       <View style={styles.emptyContainer}>
@@ -90,7 +87,16 @@ export const HomeScreen: React.FC = () => {
     );
   }, []);
 
-  // Determine what screen to show
+  // Render an alarm list item - memoized to prevent recreation on every render
+  const renderAlarmItem = useCallback(({ item }: { item: AlarmSettings }) => (
+    <AlarmListItem
+      alarm={item}
+      onPress={handleEditAlarm}
+      onToggle={toggleAlarmEnabled}
+    />
+  ), [handleEditAlarm, toggleAlarmEnabled]);
+
+  // Determine what screen to show - this is conditional rendering, not state-based
   if (isAlarmRinging && activeAlarm) {
     return (
       <MotivationalAlarmScreen 
@@ -111,6 +117,12 @@ export const HomeScreen: React.FC = () => {
     );
   }
 
+  // Memoize contentContainerStyle to prevent recreation on every render
+  const listContentStyle = useMemo(() => 
+    alarms.length === 0 ? { flex: 1 } : undefined, 
+    [alarms.length]
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
@@ -127,15 +139,9 @@ export const HomeScreen: React.FC = () => {
         <FlatList
           data={alarms}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <AlarmListItem
-              alarm={item}
-              onPress={handleEditAlarm}
-              onToggle={toggleAlarmEnabled}
-            />
-          )}
+          renderItem={renderAlarmItem}
           ListEmptyComponent={renderEmptyState}
-          contentContainerStyle={alarms.length === 0 ? { flex: 1 } : {}}
+          contentContainerStyle={listContentStyle}
         />
 
         <TouchableOpacity

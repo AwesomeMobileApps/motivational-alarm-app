@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { AppState, Platform } from 'react-native';
+import { AppState } from 'react-native';
 import { AlarmSettings } from '../types';
 import { getNextAlarmTime } from '../utils/alarmUtils';
 
@@ -7,37 +7,52 @@ import { getNextAlarmTime } from '../utils/alarmUtils';
  * Hook to manage active alarms and determine when they should trigger
  */
 export const useActiveAlarm = (alarms: AlarmSettings[]) => {
+  // States that need to trigger UI updates
   const [isAlarmRinging, setIsAlarmRinging] = useState(false);
   const [activeAlarm, setActiveAlarm] = useState<AlarmSettings | null>(null);
   const [nextAlarmTime, setNextAlarmTime] = useState<Date | null>(null);
-  const [timerId, setTimerId] = useState<ReturnType<typeof setInterval> | null>(null);
   
-  // Use refs to avoid dependency issues with functions that depend on state
-  const isAlarmRingingRef = useRef(isAlarmRinging);
+  // Refs for internal state that shouldn't trigger re-renders
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const alarmsRef = useRef(alarms);
+  const isInitializedRef = useRef(false);
   
-  // Keep refs in sync with state
+  // Update the alarms ref when alarms change
   useEffect(() => {
-    isAlarmRingingRef.current = isAlarmRinging;
     alarmsRef.current = alarms;
-  }, [isAlarmRinging, alarms]);
-
-  // Find the next alarm that should ring
-  const calculateNextAlarm = useCallback(() => {
+    // Only recalculate if we've already initialized to prevent loops during setup
+    if (isInitializedRef.current) {
+      calculateNextAlarmInternal();
+    }
+  }, [alarms]);
+  
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+  
+  // Internal function to calculate next alarm - doesn't need to be memoized
+  const calculateNextAlarmInternal = () => {
     // Only consider enabled alarms
     const enabledAlarms = alarmsRef.current.filter(alarm => alarm.isEnabled);
+    
     if (enabledAlarms.length === 0) {
       setNextAlarmTime(null);
       return null;
     }
 
     // Find the next time each alarm will ring
-    const alarmsWithNextTime = enabledAlarms.map(alarm => ({
-      alarm,
-      nextTime: getNextAlarmTime(alarm)
-    })).filter(item => item.nextTime !== null);
+    const alarmsWithNextTime = enabledAlarms
+      .map(alarm => ({
+        alarm,
+        nextTime: getNextAlarmTime(alarm)
+      }))
+      .filter(item => item.nextTime !== null);
 
-    // Sort by time and get the first one
     if (alarmsWithNextTime.length === 0) {
       setNextAlarmTime(null);
       return null;
@@ -49,83 +64,68 @@ export const useActiveAlarm = (alarms: AlarmSettings[]) => {
     );
 
     const nextAlarm = sortedAlarms[0];
-    setNextAlarmTime(nextAlarm.nextTime);
+    
+    // Only update if the time has changed to prevent unnecessary re-renders
+    if (!nextAlarmTime || 
+        nextAlarm.nextTime?.getTime() !== nextAlarmTime.getTime()) {
+      setNextAlarmTime(nextAlarm.nextTime);
+    }
+    
     return nextAlarm;
-  }, []);
-
-  // Check if any alarm should be ringing
-  const checkAlarms = useCallback(() => {
+  };
+  
+  // Internal function to check alarms - doesn't need to be memoized
+  const checkAlarmsInternal = () => {
+    // Don't trigger another alarm if one is already ringing
+    if (isAlarmRinging) return;
+    
     const now = new Date();
-    
-    // If an alarm is already ringing, don't trigger another
-    if (isAlarmRingingRef.current) return;
-    
-    // Calculate the next alarm if we don't have one
-    const next = calculateNextAlarm();
+    const next = calculateNextAlarmInternal();
     
     if (next && next.nextTime) {
-      // If the next alarm time is within the last minute, trigger it
       const timeDiff = next.nextTime.getTime() - now.getTime();
-      if (timeDiff <= 0 && timeDiff > -60000) { // Within the last minute
+      
+      // If alarm time is within the last minute, trigger it
+      if (timeDiff <= 0 && timeDiff > -60000) {
         setActiveAlarm(next.alarm);
         setIsAlarmRinging(true);
       }
     }
-  }, [calculateNextAlarm]);
+  };
 
-  // Schedule the next alarm check
-  const scheduleNextCheck = useCallback(() => {
-    // Clear any existing timer
-    if (timerId) {
-      clearTimeout(timerId);
-    }
-
-    // Check immediately 
-    checkAlarms();
+  // Set up the interval only once
+  useEffect(() => {
+    // Check immediately on first render
+    checkAlarmsInternal();
+    isInitializedRef.current = true;
     
-    // Set up a timer to check every minute
-    const newTimerId = setInterval(checkAlarms, 60000); // Check every minute
-    setTimerId(newTimerId);
+    // Set up recurring checks
+    timerRef.current = setInterval(checkAlarmsInternal, 60000);
     
-    return () => {
-      if (newTimerId) clearInterval(newTimerId);
-    };
-  }, [checkAlarms, timerId]);
-
-  // Recalculate next alarm time when alarms change or app state changes
-  useEffect(() => {
-    calculateNextAlarm();
-  }, [calculateNextAlarm, alarms]);
-
-  // Set up timer only once on mount
-  useEffect(() => {
-    const cleanupFn = scheduleNextCheck();
-    return cleanupFn;
-  }, [scheduleNextCheck]);
-
-  // Monitor app state changes to refresh alarm schedules
-  useEffect(() => {
+    // Set up app state listener
     const subscription = AppState.addEventListener('change', (nextAppState) => {
       if (nextAppState === 'active') {
-        // App came to foreground - recalculate alarms
-        calculateNextAlarm();
+        // App came to foreground - check alarms right away
+        checkAlarmsInternal();
       }
     });
-
+    
     return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
       subscription.remove();
     };
-  }, [calculateNextAlarm]);
+  }, []); // Empty dependency array - only runs once on mount
 
-  // Function to dismiss the currently ringing alarm
+  // Exposed function to dismiss the alarm
   const dismissAlarm = useCallback(() => {
     setIsAlarmRinging(false);
     setActiveAlarm(null);
-    // Recalculate to set up the next alarm
-    calculateNextAlarm();
-  }, [calculateNextAlarm]);
+    // Schedule a check for the next alarm
+    setTimeout(checkAlarmsInternal, 1000);
+  }, []);
 
-  // Return the alarm state and control functions
   return {
     isAlarmRinging,
     activeAlarm,

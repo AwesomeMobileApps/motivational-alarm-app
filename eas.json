@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 5.9.1"
+    "version": ">= 5.9.1",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -10,17 +11,19 @@
     "preview": {
       "distribution": "internal"
     },
-    "production": {}
+    "production": {
+      "autoIncrement": true
+    }
   },
   "submit": {
     "production": {
       "ios": {
         "appleId": "YOUR_APPLE_ID",
-        "ascAppId": "YOUR_APP_SPECIFIC_PASSWORD",
-        "appleTeamId": "YOUR_APPLE_TEAM_ID"
+        "ascAppId": "YOUR_APP_ID",
+        "appleTeamId": "YOUR_TEAM_ID"
       },
       "android": {
-        "serviceAccountKeyPath": "path/to/api-key.json"
+        "serviceAccountKeyPath": "./path-to-key.json"
       }
     }
   }

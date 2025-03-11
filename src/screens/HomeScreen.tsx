@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -34,49 +34,52 @@ export const HomeScreen: React.FC = () => {
     toggleAlarmEnabled
   } = useAlarms();
 
-  // Track active alarms
+  // Memoize the alarms array to prevent infinite re-renders
+  const memoizedAlarms = useCallback(() => alarms, [alarms]);
+
+  // Track active alarms with memoized alarms array
   const {
     isAlarmRinging,
     activeAlarm,
     nextAlarmTime,
     dismissAlarm
-  } = useActiveAlarm(alarms);
+  } = useActiveAlarm(memoizedAlarms());
 
   // Handle creating a new alarm
-  const handleAddAlarm = () => {
+  const handleAddAlarm = useCallback(() => {
     const newAlarm = addAlarm();
     setCurrentEditAlarm(newAlarm);
     setShowEditScreen(true);
-  };
+  }, [addAlarm]);
 
   // Handle editing an existing alarm
-  const handleEditAlarm = (alarm: AlarmSettings) => {
+  const handleEditAlarm = useCallback((alarm: AlarmSettings) => {
     setCurrentEditAlarm(alarm);
     setShowEditScreen(true);
-  };
+  }, []);
 
   // Save alarm changes
-  const handleSaveAlarm = (alarm: AlarmSettings) => {
+  const handleSaveAlarm = useCallback((alarm: AlarmSettings) => {
     updateAlarm(alarm);
     setShowEditScreen(false);
     setCurrentEditAlarm(null);
-  };
+  }, [updateAlarm]);
 
   // Delete an alarm
-  const handleDeleteAlarm = (id: string) => {
+  const handleDeleteAlarm = useCallback((id: string) => {
     deleteAlarm(id);
     setShowEditScreen(false);
     setCurrentEditAlarm(null);
-  };
+  }, [deleteAlarm]);
 
   // Cancel edit
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setShowEditScreen(false);
     setCurrentEditAlarm(null);
-  };
+  }, []);
 
   // Render empty state when no alarms
-  const renderEmptyState = () => {
+  const renderEmptyState = useCallback(() => {
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyTitle}>No Alarms Yet</Text>
@@ -85,7 +88,7 @@ export const HomeScreen: React.FC = () => {
         </Text>
       </View>
     );
-  };
+  }, []);
 
   // Determine what screen to show
   if (isAlarmRinging && activeAlarm) {

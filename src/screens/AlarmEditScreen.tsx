@@ -8,10 +8,12 @@ import {
   TextInput,
   Platform,
   Switch,
+  FlatList,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { AlarmSettings, COLORS, DAYS } from '../types';
+import { AlarmSettings, COLORS, DAYS, SOUND_OPTIONS } from '../types';
 import { getRandomMotivationalQuote } from '../utils/alarmUtils';
+import { Audio } from 'expo-av';
 
 interface AlarmEditScreenProps {
   alarm: AlarmSettings;
@@ -34,6 +36,10 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
   
   // Time picker state
   const [showTimePicker, setShowTimePicker] = useState(false);
+  
+  // Sound preview state
+  const [previewSound, setPreviewSound] = useState<Audio.Sound | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   
   // Handle time selection
   const handleTimeChange = (event: any, selectedDate?: Date) => {
@@ -82,6 +88,72 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
     }));
   };
   
+  // Select a sound file
+  const selectSound = (soundFile: string) => {
+    setEditedAlarm(prev => ({
+      ...prev,
+      soundFile,
+    }));
+  };
+  
+  // Preview a sound
+  const previewSoundFile = async (soundFile: string) => {
+    try {
+      // Stop any currently playing sound
+      if (previewSound) {
+        await previewSound.stopAsync();
+        await previewSound.unloadAsync();
+        setPreviewSound(null);
+        setIsPlaying(false);
+      }
+      
+      // If we're already playing this sound, just stop it
+      if (isPlaying && editedAlarm.soundFile === soundFile) {
+        return;
+      }
+      
+      // Map the sound file name to the appropriate require statement
+      let soundSource;
+      switch (soundFile) {
+        case 'motivational-speech.mp3':
+          soundSource = require('../../assets/sounds/motivational-speech.mp3');
+          break;
+        case 'energy-boost.mp3':
+          soundSource = require('../../assets/sounds/energy-boost.mp3');
+          break;
+        case 'rise-and-shine.mp3':
+          soundSource = require('../../assets/sounds/rise-and-shine.mp3');
+          break;
+        case 'seize-the-day.mp3':
+          soundSource = require('../../assets/sounds/seize-the-day.mp3');
+          break;
+        case 'success-awaits.mp3':
+          soundSource = require('../../assets/sounds/success-awaits.mp3');
+          break;
+        default:
+          soundSource = require('../../assets/sounds/motivational-speech.mp3');
+      }
+      
+      // Otherwise load and play the new sound
+      const { sound } = await Audio.Sound.createAsync(
+        soundSource,
+        { shouldPlay: true, volume: 1.0 }
+      );
+      
+      setPreviewSound(sound);
+      setIsPlaying(true);
+      
+      // Cleanup when done playing
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          setIsPlaying(false);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to play sound preview', error);
+    }
+  };
+  
   // Format time for display
   const formatTimeForDisplay = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -96,6 +168,15 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
   const handleDelete = () => {
     onDelete(editedAlarm.id);
   };
+
+  // Cleanup sound on unmount
+  React.useEffect(() => {
+    return () => {
+      if (previewSound) {
+        previewSound.unloadAsync();
+      }
+    };
+  }, [previewSound]);
   
   return (
     <View style={styles.container}>
@@ -163,6 +244,36 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
             placeholder="Alarm label"
             placeholderTextColor="#999"
             maxLength={30}
+          />
+        </View>
+        
+        {/* Sound Selection Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Motivational Sound</Text>
+          <FlatList
+            data={SOUND_OPTIONS}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[
+                  styles.soundOption,
+                  editedAlarm.soundFile === item.file && styles.soundOptionSelected,
+                ]}
+                onPress={() => selectSound(item.file)}
+              >
+                <Text style={styles.soundName}>{item.name}</Text>
+                <TouchableOpacity
+                  style={styles.previewButton}
+                  onPress={() => previewSoundFile(item.file)}
+                >
+                  <Text style={styles.previewButtonText}>
+                    {isPlaying && editedAlarm.soundFile === item.file 
+                      ? 'Stop' 
+                      : 'Preview'}
+                  </Text>
+                </TouchableOpacity>
+              </TouchableOpacity>
+            )}
           />
         </View>
         
@@ -303,6 +414,33 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     color: COLORS.text,
+  },
+  soundOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  soundOptionSelected: {
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+  },
+  soundName: {
+    fontSize: 16,
+    color: COLORS.text,
+  },
+  previewButton: {
+    backgroundColor: COLORS.secondary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  previewButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
   },
   regenerateButton: {
     backgroundColor: COLORS.accent,

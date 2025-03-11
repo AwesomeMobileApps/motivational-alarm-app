@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   Animated,
   Dimensions,
   SafeAreaView,
+  ImageBackground,
+  Vibration,
 } from 'react-native';
 import { AlarmSettings, COLORS } from '../types';
 import { getRandomMotivationalQuote } from '../utils/alarmUtils';
@@ -29,15 +31,46 @@ export const MotivationalAlarmScreen: React.FC<MotivationalAlarmScreenProps> = (
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  
-  // Get a random quote if the alarm doesn't have one specified
-  const quote = alarm.motivationalMessage || getRandomMotivationalQuote();
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const rotateText = useRef(new Animated.Value(0)).current;
+
+  // For shimmer effect on text
+  const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
+  const quotes = [
+    alarm.motivationalMessage || getRandomMotivationalQuote(),
+    getRandomMotivationalQuote(),
+    getRandomMotivationalQuote(),
+  ];
   
   // Initialize sound playback
   const { isPlaying, playSound, stopSound } = useAlarmSound(alarm.soundFile);
   
+  // Create a recurring vibration pattern
+  const startVibration = () => {
+    // Vibration pattern: wait 500ms, vibrate for 500ms, wait 500ms, etc.
+    const pattern = [500, 500, 500, 500, 500, 500];
+    Vibration.vibrate(pattern, true);
+  };
+
+  // Stop vibration on cleanup
+  const stopVibration = () => {
+    Vibration.cancel();
+  };
+  
+  // Cycle through motivational quotes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentQuoteIndex((prev) => (prev + 1) % quotes.length);
+    }, 5000); // Change quote every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Start animations and sound when screen appears
   useEffect(() => {
+    // Start vibration
+    startVibration();
+    
     // Fade in the screen
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -67,6 +100,31 @@ export const MotivationalAlarmScreen: React.FC<MotivationalAlarmScreenProps> = (
         }),
       ])
     ).start();
+
+    // Create a rotating sun effect
+    Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 10000, // 10 seconds per rotation
+        useNativeDriver: true,
+      })
+    ).start();
+
+    // Create subtle text animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(rotateText, {
+          toValue: 0.02, // Subtle rotation
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(rotateText, {
+          toValue: -0.02,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
     
     // Play the alarm sound
     playSound();
@@ -74,17 +132,31 @@ export const MotivationalAlarmScreen: React.FC<MotivationalAlarmScreenProps> = (
     // Clean up when component unmounts
     return () => {
       stopSound();
+      stopVibration();
     };
-  }, [fadeAnim, scaleAnim, pulseAnim, playSound, stopSound]);
+  }, [fadeAnim, scaleAnim, pulseAnim, rotateAnim, rotateText, playSound, stopSound]);
   
   // Handle dismissing the alarm
   const handleDismiss = () => {
     stopSound();
+    stopVibration();
     onDismiss();
   };
   
   // Get screen dimensions for responsive layout
   const { width, height } = Dimensions.get('window');
+
+  // Interpolate rotation for sun animation
+  const spin = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  // Interpolate subtle text animation
+  const textRotate = rotateText.interpolate({
+    inputRange: [-0.02, 0.02],
+    outputRange: ['-2deg', '2deg'],
+  });
   
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -94,6 +166,19 @@ export const MotivationalAlarmScreen: React.FC<MotivationalAlarmScreenProps> = (
           { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }
         ]}
       >
+        {/* Animated sun background */}
+        <Animated.View style={[styles.sunBackground, { transform: [{ rotate: spin }] }]}>
+          {[...Array(12)].map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.sunRay,
+                { transform: [{ rotate: `${i * 30}deg` }] }
+              ]}
+            />
+          ))}
+        </Animated.View>
+        
         <View style={styles.contentContainer}>
           <Text style={styles.timeText}>{new Date().toLocaleTimeString([], { 
             hour: '2-digit', 
@@ -102,30 +187,33 @@ export const MotivationalAlarmScreen: React.FC<MotivationalAlarmScreenProps> = (
           
           <Text style={styles.label}>{alarm.label}</Text>
           
-          {/* Sun rays background effect */}
-          <View style={styles.sunRaysContainer}>
-            {[...Array(12)].map((_, i) => (
-              <View 
-                key={i} 
-                style={[
-                  styles.sunRay, 
-                  { transform: [{ rotate: `${i * 30}deg` }] }
-                ]} 
-              />
-            ))}
-          </View>
+          {/* Quote container with animated text */}
+          <Animated.View 
+            style={[
+              styles.quoteContainer,
+              { transform: [{ rotate: textRotate }] }
+            ]}
+          >
+            <Text style={styles.quoteText}>{quotes[currentQuoteIndex]}</Text>
+          </Animated.View>
           
-          <View style={styles.quoteContainer}>
-            <Text style={styles.quoteText}>{quote}</Text>
-          </View>
-          
-          <Text style={styles.motivationalText}>
+          <Animated.Text 
+            style={[
+              styles.motivationalText,
+              { transform: [{ scale: pulseAnim }] }
+            ]}
+          >
             TODAY IS YOUR DAY TO SHINE!
-          </Text>
+          </Animated.Text>
           
-          <Text style={styles.subText}>
-            Get up now and make today amazing!
-          </Text>
+          <View style={styles.motivationContainer}>
+            <Text style={styles.subText}>
+              Get up now and make today amazing!
+            </Text>
+            <Text style={styles.subText}>
+              Your dreams are waiting for you to chase them.
+            </Text>
+          </View>
         </View>
         
         <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
@@ -137,6 +225,10 @@ export const MotivationalAlarmScreen: React.FC<MotivationalAlarmScreenProps> = (
             <Text style={styles.dismissText}>I'M AWAKE & READY!</Text>
           </TouchableOpacity>
         </Animated.View>
+
+        <View style={styles.additionalMotivation}>
+          <Text style={styles.additionalText}>TODAY WILL BE YOUR BEST DAY YET!</Text>
+        </View>
       </Animated.View>
     </SafeAreaView>
   );
@@ -153,6 +245,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+    overflow: 'hidden', // Ensure rays don't spill out
   },
   contentContainer: {
     flex: 1,
@@ -160,6 +253,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    zIndex: 2, // Above background
   },
   timeText: {
     fontSize: 60,
@@ -175,13 +269,15 @@ const styles = StyleSheet.create({
     color: 'white',
     marginBottom: 30,
   },
-  sunRaysContainer: {
+  sunBackground: {
     position: 'absolute',
     width: 300,
     height: 300,
+    borderRadius: 150,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: -1,
+    zIndex: 1,
   },
   sunRay: {
     position: 'absolute',
@@ -197,6 +293,8 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     width: '100%',
     maxWidth: 500,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   quoteText: {
     fontSize: 24,
@@ -204,6 +302,9 @@ const styles = StyleSheet.create({
     color: 'white',
     textAlign: 'center',
     lineHeight: 32,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   motivationalText: {
     fontSize: 32,
@@ -215,11 +316,16 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
+  motivationContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
   subText: {
     fontSize: 20,
     color: 'white',
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 10,
+    fontWeight: '600',
   },
   dismissButton: {
     backgroundColor: COLORS.accent,
@@ -232,11 +338,28 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   dismissText: {
     color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 1,
+  },
+  additionalMotivation: {
+    backgroundColor: COLORS.secondary,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  additionalText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 }); 

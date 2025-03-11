@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AppState, Platform } from 'react-native';
 import { AlarmSettings } from '../types';
 import { getNextAlarmTime } from '../utils/alarmUtils';
@@ -11,11 +11,21 @@ export const useActiveAlarm = (alarms: AlarmSettings[]) => {
   const [activeAlarm, setActiveAlarm] = useState<AlarmSettings | null>(null);
   const [nextAlarmTime, setNextAlarmTime] = useState<Date | null>(null);
   const [timerId, setTimerId] = useState<ReturnType<typeof setInterval> | null>(null);
+  
+  // Use refs to avoid dependency issues with functions that depend on state
+  const isAlarmRingingRef = useRef(isAlarmRinging);
+  const alarmsRef = useRef(alarms);
+  
+  // Keep refs in sync with state
+  useEffect(() => {
+    isAlarmRingingRef.current = isAlarmRinging;
+    alarmsRef.current = alarms;
+  }, [isAlarmRinging, alarms]);
 
   // Find the next alarm that should ring
   const calculateNextAlarm = useCallback(() => {
     // Only consider enabled alarms
-    const enabledAlarms = alarms.filter(alarm => alarm.isEnabled);
+    const enabledAlarms = alarmsRef.current.filter(alarm => alarm.isEnabled);
     if (enabledAlarms.length === 0) {
       setNextAlarmTime(null);
       return null;
@@ -41,14 +51,14 @@ export const useActiveAlarm = (alarms: AlarmSettings[]) => {
     const nextAlarm = sortedAlarms[0];
     setNextAlarmTime(nextAlarm.nextTime);
     return nextAlarm;
-  }, [alarms]);
+  }, []);
 
   // Check if any alarm should be ringing
   const checkAlarms = useCallback(() => {
     const now = new Date();
     
     // If an alarm is already ringing, don't trigger another
-    if (isAlarmRinging) return;
+    if (isAlarmRingingRef.current) return;
     
     // Calculate the next alarm if we don't have one
     const next = calculateNextAlarm();
@@ -61,7 +71,7 @@ export const useActiveAlarm = (alarms: AlarmSettings[]) => {
         setIsAlarmRinging(true);
       }
     }
-  }, [calculateNextAlarm, isAlarmRinging]);
+  }, [calculateNextAlarm]);
 
   // Schedule the next alarm check
   const scheduleNextCheck = useCallback(() => {
@@ -85,12 +95,13 @@ export const useActiveAlarm = (alarms: AlarmSettings[]) => {
   // Recalculate next alarm time when alarms change or app state changes
   useEffect(() => {
     calculateNextAlarm();
-  }, [alarms, calculateNextAlarm]);
+  }, [calculateNextAlarm, alarms]);
 
-  // Re-schedule when alarms or next alarm time changes
+  // Set up timer only once on mount
   useEffect(() => {
-    return scheduleNextCheck();
-  }, [alarms, nextAlarmTime, scheduleNextCheck]);
+    const cleanupFn = scheduleNextCheck();
+    return cleanupFn;
+  }, [scheduleNextCheck]);
 
   // Monitor app state changes to refresh alarm schedules
   useEffect(() => {
@@ -98,14 +109,13 @@ export const useActiveAlarm = (alarms: AlarmSettings[]) => {
       if (nextAppState === 'active') {
         // App came to foreground - recalculate alarms
         calculateNextAlarm();
-        scheduleNextCheck();
       }
     });
 
     return () => {
       subscription.remove();
     };
-  }, [calculateNextAlarm, scheduleNextCheck]);
+  }, [calculateNextAlarm]);
 
   // Function to dismiss the currently ringing alarm
   const dismissAlarm = useCallback(() => {

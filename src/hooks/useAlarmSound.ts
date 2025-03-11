@@ -33,16 +33,28 @@ export const useAlarmSound = (soundFile: string) => {
         shouldDuckAndroid: true, // Lower volume of other apps on Android
       });
 
-      // Check if the sound file exists in assets or use a URI
+      // Map the sound file name to the appropriate require statement
+      // This avoids dynamic requires which aren't supported
       let soundSource;
-      if (soundFile.startsWith('http')) {
-        // For network resources
-        soundSource = { uri: soundFile };
-      } else {
-        // For local resources bundled with the app
-        // Note: This is a simplified approach. In a real app, you'd need to handle 
-        // the correct require for each possible sound file.
-        soundSource = require('../../src/assets/sounds/motivational-speech.mp3');
+      switch (soundFile) {
+        case 'motivational-speech.mp3':
+          soundSource = require('../../assets/sounds/motivational-speech.mp3');
+          break;
+        case 'energy-boost.mp3':
+          soundSource = require('../../assets/sounds/energy-boost.mp3');
+          break;
+        case 'rise-and-shine.mp3':
+          soundSource = require('../../assets/sounds/rise-and-shine.mp3');
+          break;
+        case 'seize-the-day.mp3':
+          soundSource = require('../../assets/sounds/seize-the-day.mp3');
+          break;
+        case 'success-awaits.mp3':
+          soundSource = require('../../assets/sounds/success-awaits.mp3');
+          break;
+        default:
+          // Default fallback sound
+          soundSource = require('../../assets/sounds/motivational-speech.mp3');
       }
 
       // Load sound file

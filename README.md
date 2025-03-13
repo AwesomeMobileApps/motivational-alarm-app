@@ -1,4 +1,4 @@
-# Motivational Alarm App
+# Motivational Alarm App ☀️
 
 A motivational wake-up alarm app built with TypeScript, Expo, and React Native. This app helps you start your day with positivity and motivation.
 
@@ -67,7 +67,7 @@ npx expo start
 
 ## License
 
-MIT License
+MIT License. Happy day! Fell free to tweak it, fork it, and make any contributions ⚡️
 
 ## Contributing
 

@@ -32,19 +32,19 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
   onCancel,
 }) => {
   // Local state to track changes to the alarm
-  const [editedAlarm, setEditedAlarm] = useState<AlarmSettings>({...alarm});
-  
+  const [editedAlarm, setEditedAlarm] = useState<AlarmSettings>({ ...alarm });
+
   // Time picker state
   const [showTimePicker, setShowTimePicker] = useState(false);
-  
+
   // Sound preview state
   const [previewSound, setPreviewSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  
+
   // Handle time selection
   const handleTimeChange = (event: any, selectedDate?: Date) => {
     setShowTimePicker(Platform.OS === 'ios'); // Only hide on Android
-    
+
     if (selectedDate) {
       setEditedAlarm(prev => ({
         ...prev,
@@ -52,7 +52,7 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
       }));
     }
   };
-  
+
   // Toggle day selection
   const toggleDay = (dayIndex: number) => {
     setEditedAlarm(prev => {
@@ -62,16 +62,15 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
           ...prev,
           days: prev.days.filter(day => day !== dayIndex),
         };
-      } else {
-        // Add the day if not selected
-        return {
-          ...prev,
-          days: [...prev.days, dayIndex].sort((a, b) => a - b),
-        };
       }
+      // Add the day if not selected
+      return {
+        ...prev,
+        days: [...prev.days, dayIndex].sort((a, b) => a - b),
+      };
     });
   };
-  
+
   // Update label text
   const updateLabel = (text: string) => {
     setEditedAlarm(prev => ({
@@ -79,7 +78,7 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
       label: text,
     }));
   };
-  
+
   // Regenerate motivational message
   const regenerateMessage = () => {
     setEditedAlarm(prev => ({
@@ -87,7 +86,7 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
       motivationalMessage: getRandomMotivationalQuote(),
     }));
   };
-  
+
   // Select a sound file
   const selectSound = (soundFile: string) => {
     setEditedAlarm(prev => ({
@@ -95,7 +94,7 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
       soundFile,
     }));
   };
-  
+
   // Preview a sound
   const previewSoundFile = async (soundFile: string) => {
     try {
@@ -106,12 +105,13 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
         setPreviewSound(null);
         setIsPlaying(false);
       }
-      
+
       // If we're already playing this sound, just stop it
-      if (isPlaying && editedAlarm.soundFile === soundFile) {
+      const isSameSongAlreadyPlaying = isPlaying && editedAlarm.soundFile === soundFile
+      if (isSameSongAlreadyPlaying) {
         return;
       }
-      
+
       // Map the sound file name to the appropriate require statement
       let soundSource;
       switch (soundFile) {
@@ -133,16 +133,16 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
         default:
           soundSource = require('../../assets/sounds/motivational-speech.mp3');
       }
-      
+
       // Otherwise load and play the new sound
       const { sound } = await Audio.Sound.createAsync(
         soundSource,
         { shouldPlay: true, volume: 1.0 }
       );
-      
+
       setPreviewSound(sound);
       setIsPlaying(true);
-      
+
       // Cleanup when done playing
       sound.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded && status.didJustFinish) {
@@ -153,17 +153,17 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
       console.error('Failed to play sound preview', error);
     }
   };
-  
+
   // Format time for display
   const formatTimeForDisplay = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
-  
+
   // Handle save button
   const handleSave = () => {
     onSave(editedAlarm);
   };
-  
+
   // Handle delete button
   const handleDelete = () => {
     onDelete(editedAlarm.id);
@@ -177,14 +177,14 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
       }
     };
   }, [previewSound]);
-  
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>
           {alarm.id ? 'Edit Alarm' : 'Create Alarm'}
         </Text>
-        
+
         {/* Time Picker Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Time</Text>
@@ -196,7 +196,7 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
               {formatTimeForDisplay(editedAlarm.time)}
             </Text>
           </TouchableOpacity>
-          
+
           {showTimePicker && (
             <DateTimePicker
               value={editedAlarm.time}
@@ -207,7 +207,7 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
             />
           )}
         </View>
-        
+
         {/* Days Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Repeat</Text>
@@ -233,7 +233,7 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
             ))}
           </View>
         </View>
-        
+
         {/* Label Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Label</Text>
@@ -246,7 +246,7 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
             maxLength={30}
           />
         </View>
-        
+
         {/* Sound Selection Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Motivational Sound</Text>
@@ -267,8 +267,8 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
                   onPress={() => previewSoundFile(item.file)}
                 >
                   <Text style={styles.previewButtonText}>
-                    {isPlaying && editedAlarm.soundFile === item.file 
-                      ? 'Stop' 
+                    {isPlaying && editedAlarm.soundFile === item.file
+                      ? 'Stop'
                       : 'Preview'}
                   </Text>
                 </TouchableOpacity>
@@ -276,7 +276,7 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
             )}
           />
         </View>
-        
+
         {/* Motivational Message Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
@@ -292,13 +292,13 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
             <Text style={styles.messageText}>{editedAlarm.motivationalMessage}</Text>
           </View>
         </View>
-        
+
         {/* Active Switch */}
         <View style={styles.switchRow}>
           <Text style={styles.switchLabel}>Alarm active</Text>
           <Switch
             value={editedAlarm.isEnabled}
-            onValueChange={(value) => 
+            onValueChange={(value) =>
               setEditedAlarm(prev => ({ ...prev, isEnabled: value }))
             }
             trackColor={{ false: '#767577', true: COLORS.primary }}
@@ -306,7 +306,7 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
           />
         </View>
       </ScrollView>
-      
+
       {/* Action Buttons */}
       <View style={styles.buttonContainer}>
         {alarm.id && (
@@ -317,14 +317,14 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
             <Text style={styles.deleteButtonText}>Delete</Text>
           </TouchableOpacity>
         )}
-        
+
         <TouchableOpacity
           style={[styles.button, styles.cancelButton]}
           onPress={onCancel}
         >
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.button, styles.saveButton]}
           onPress={handleSave}

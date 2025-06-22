@@ -61,7 +61,7 @@ npx expo start
 - `/src/assets`: Audio files and images
 
 
-## Who Created This SMART Alarm?
+## Who Created This Intelligent Motivational Alarm?
 
 **Pierre-Henry Soria** — a **super passionate engineer** who loves automating content creation efficiently!
 Enthusiast of YouTube, AI, learning, and—of course—writing!

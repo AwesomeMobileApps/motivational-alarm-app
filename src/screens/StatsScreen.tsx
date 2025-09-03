@@ -30,11 +30,11 @@ export const StatsScreen: React.FC<StatsScreenProps> = ({ onClose }) => {
     );
   }
 
-  const StatCard: React.FC<{ title: string; value: string | number; subtitle?: string; color?: string }> = ({ 
-    title, 
-    value, 
-    subtitle, 
-    color = COLORS.primary 
+  const StatCard: React.FC<{ title: string; value: string | number; subtitle?: string; color?: string }> = ({
+    title,
+    value,
+    subtitle,
+    color = COLORS.primary
   }) => (
     <View style={[styles.statCard, { borderLeftColor: color }]}>
       <Text style={styles.statTitle}>{title}</Text>
@@ -87,15 +87,15 @@ export const StatsScreen: React.FC<StatsScreenProps> = ({ onClose }) => {
                 <Text style={styles.weeklyValue}>{weeklyPerf.onTimeDays}</Text>
               </View>
               <View style={styles.progressBar}>
-                <View 
+                <View
                   style={[
-                    styles.progressFill, 
-                    { 
+                    styles.progressFill,
+                    {
                       width: `${weeklyPerf.percentage}%`,
-                      backgroundColor: weeklyPerf.percentage >= 80 ? COLORS.accent : 
-                                     weeklyPerf.percentage >= 60 ? COLORS.primary : COLORS.secondary
+                      backgroundColor: weeklyPerf.percentage >= 80 ? COLORS.accent :
+                        weeklyPerf.percentage >= 60 ? COLORS.primary : COLORS.secondary
                     }
-                  ]} 
+                  ]}
                 />
               </View>
               <Text style={styles.percentageText}>{weeklyPerf.percentage}% success rate</Text>
@@ -106,25 +106,25 @@ export const StatsScreen: React.FC<StatsScreenProps> = ({ onClose }) => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>All Time</Text>
             <View style={styles.statsGrid}>
-              <StatCard 
-                title="Total Alarms" 
-                value={stats.totalAlarms} 
+              <StatCard
+                title="Total Alarms"
+                value={stats.totalAlarms}
                 color={COLORS.primary}
               />
-              <StatCard 
-                title="Success Rate" 
+              <StatCard
+                title="Success Rate"
                 value={`${getSuccessRate()}%`}
                 subtitle={`${stats.onTimeWakeups} on-time wake-ups`}
                 color={COLORS.accent}
               />
-              <StatCard 
-                title="Total Snoozes" 
+              <StatCard
+                title="Total Snoozes"
                 value={stats.snoozeCount}
                 subtitle={`${getAverageSnoozes()} avg per alarm`}
                 color={COLORS.secondary}
               />
-              <StatCard 
-                title="Motivation Quotes" 
+              <StatCard
+                title="Motivation Quotes"
                 value={stats.motivationalQuotesShown}
                 subtitle="Total quotes shown"
                 color="#9C27B0"

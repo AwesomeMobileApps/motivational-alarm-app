@@ -12,12 +12,16 @@ import {
   Vibration,
 } from 'react-native';
 import { AlarmSettings, COLORS } from '../types';
-import { getRandomMotivationalQuote } from '../utils/alarmUtils';
+import { getRandomMotivationalQuote, getMotivationalQuoteForCategory } from '../utils/alarmUtils';
 import { useAlarmSound } from '../hooks/useAlarmSound';
+import { useSettings } from '../hooks/useSettings';
+import { DismissalChallenge } from './DismissalChallenge';
 
 interface MotivationalAlarmScreenProps {
   alarm: AlarmSettings;
   onDismiss: () => void;
+  onSnooze?: () => void;
+  snoozeCount?: number;
 }
 
 /**
@@ -25,8 +29,13 @@ interface MotivationalAlarmScreenProps {
  */
 export const MotivationalAlarmScreen: React.FC<MotivationalAlarmScreenProps> = ({ 
   alarm, 
-  onDismiss 
+  onDismiss,
+  onSnooze,
+  snoozeCount = 0
 }) => {
+  // Get app settings
+  const { settings } = useSettings();
+  
   // Set up animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
@@ -34,11 +43,11 @@ export const MotivationalAlarmScreen: React.FC<MotivationalAlarmScreenProps> = (
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const rotateText = useRef(new Animated.Value(0)).current;
 
-  // For shimmer effect on text
+  // For quotes rotation
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const quotes = [
-    alarm.motivationalMessage || getRandomMotivationalQuote(),
-    getRandomMotivationalQuote(),
+    alarm.motivationalMessage || getMotivationalQuoteForCategory(alarm.category),
+    getMotivationalQuoteForCategory(alarm.category),
     getRandomMotivationalQuote(),
   ];
   
@@ -47,9 +56,11 @@ export const MotivationalAlarmScreen: React.FC<MotivationalAlarmScreenProps> = (
   
   // Create a recurring vibration pattern
   const startVibration = () => {
-    // Vibration pattern: wait 500ms, vibrate for 500ms, wait 500ms, etc.
-    const pattern = [500, 500, 500, 500, 500, 500];
-    Vibration.vibrate(pattern, true);
+    if (settings.vibrationEnabled && alarm.vibrationEnabled) {
+      // Vibration pattern: wait 500ms, vibrate for 500ms, wait 500ms, etc.
+      const pattern = [500, 500, 500, 500, 500, 500];
+      Vibration.vibrate(pattern, true);
+    }
   };
 
   // Stop vibration on cleanup
@@ -61,10 +72,10 @@ export const MotivationalAlarmScreen: React.FC<MotivationalAlarmScreenProps> = (
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentQuoteIndex((prev) => (prev + 1) % quotes.length);
-    }, 5000); // Change quote every 5 seconds
+    }, settings.motivationalQuoteInterval * 1000); // Use settings for interval
 
     return () => clearInterval(interval);
-  }, []);
+  }, [settings.motivationalQuoteInterval]);
 
   // Start animations and sound when screen appears
   useEffect(() => {
@@ -214,17 +225,26 @@ export const MotivationalAlarmScreen: React.FC<MotivationalAlarmScreenProps> = (
               Your dreams are waiting for you to chase them.
             </Text>
           </View>
+          
+          {/* Warning about snooze */}
+          {snoozeCount > 0 && (
+            <View style={styles.snoozeWarning}>
+              <Text style={styles.snoozeWarningText}>
+                You've snoozed {snoozeCount} time{snoozeCount > 1 ? 's' : ''}!
+              </Text>
+              <Text style={styles.snoozeWarningSubtext}>
+                Time to get up and seize the day!
+              </Text>
+            </View>
+          )}
         </View>
         
-        <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-          <TouchableOpacity 
-            style={styles.dismissButton} 
-            onPress={handleDismiss}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.dismissText}>I'M AWAKE & READY!</Text>
-          </TouchableOpacity>
-        </Animated.View>
+        {/* Dismissal Challenge */}
+        <DismissalChallenge
+          alarm={alarm}
+          onDismiss={handleDismiss}
+          onSnooze={alarm.snoozeEnabled && snoozeCount < alarm.maxSnoozes ? onSnooze : undefined}
+        />
 
         <View style={styles.additionalMotivation}>
           <Text style={styles.additionalText}>TODAY WILL BE YOUR BEST DAY YET!</Text>
@@ -361,5 +381,26 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  snoozeWarning: {
+    backgroundColor: 'rgba(255, 107, 107, 0.9)',
+    padding: 15,
+    borderRadius: 15,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#FF6B6B',
+  },
+  snoozeWarningText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 5,
+  },
+  snoozeWarningSubtext: {
+    color: 'white',
+    fontSize: 14,
+    textAlign: 'center',
+    opacity: 0.9,
   },
 }); 

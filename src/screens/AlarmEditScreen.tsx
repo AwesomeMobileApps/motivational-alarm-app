@@ -11,8 +11,8 @@ import {
   FlatList,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { AlarmSettings, COLORS, DAYS, SOUND_OPTIONS } from '../types';
-import { getRandomMotivationalQuote } from '../utils/alarmUtils';
+import { AlarmSettings, COLORS, DAYS, SOUND_OPTIONS, ALARM_CATEGORIES, DIFFICULTY_LEVELS } from '../types';
+import { getRandomMotivationalQuote, getMotivationalQuoteForCategory } from '../utils/alarmUtils';
 import { Audio } from 'expo-av';
 
 interface AlarmEditScreenProps {
@@ -81,9 +81,78 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
 
   // Regenerate motivational message
   const regenerateMessage = () => {
+    const newMessage = editedAlarm.category ? 
+      getMotivationalQuoteForCategory(editedAlarm.category) : 
+      getRandomMotivationalQuote();
+    
     setEditedAlarm(prev => ({
       ...prev,
-      motivationalMessage: getRandomMotivationalQuote(),
+      motivationalMessage: newMessage,
+    }));
+  };
+
+  // Select alarm category
+  const selectCategory = (categoryId: string) => {
+    const category = ALARM_CATEGORIES.find(cat => cat.id === categoryId);
+    setEditedAlarm(prev => ({
+      ...prev,
+      category: categoryId as any,
+      motivationalMessage: category ? getMotivationalQuoteForCategory(categoryId) : prev.motivationalMessage,
+      soundFile: category ? category.defaultSound : prev.soundFile,
+    }));
+  };
+
+  // Select difficulty level
+  const selectDifficulty = (difficultyId: string) => {
+    setEditedAlarm(prev => ({
+      ...prev,
+      difficulty: difficultyId as any,
+    }));
+  };
+
+  // Update volume
+  const updateVolume = (volume: number) => {
+    setEditedAlarm(prev => ({
+      ...prev,
+      volume,
+    }));
+  };
+
+  // Update fade-in duration
+  const updateFadeInDuration = (duration: number) => {
+    setEditedAlarm(prev => ({
+      ...prev,
+      fadeInDuration: duration,
+    }));
+  };
+
+  // Update snooze settings
+  const updateSnoozeEnabled = (enabled: boolean) => {
+    setEditedAlarm(prev => ({
+      ...prev,
+      snoozeEnabled: enabled,
+    }));
+  };
+
+  const updateSnoozeDuration = (duration: number) => {
+    setEditedAlarm(prev => ({
+      ...prev,
+      snoozeDuration: duration,
+    }));
+  };
+
+  const updateMaxSnoozes = (max: number) => {
+    setEditedAlarm(prev => ({
+      ...prev,
+      maxSnoozes: max,
+    }));
+  };
+
+  // Update vibration
+  const updateVibrationEnabled = (enabled: boolean) => {
+    setEditedAlarm(prev => ({
+      ...prev,
+      vibrationEnabled: enabled,
     }));
   };
 
@@ -245,6 +314,198 @@ export const AlarmEditScreen: React.FC<AlarmEditScreenProps> = ({
             placeholderTextColor="#999"
             maxLength={30}
           />
+        </View>
+
+        {/* Category Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Alarm Category</Text>
+          <Text style={styles.sectionDescription}>Choose the type of motivation you need</Text>
+          <View style={styles.categoryContainer}>
+            {ALARM_CATEGORIES.map((category) => (
+              <TouchableOpacity
+                key={category.id}
+                style={[
+                  styles.categoryOption,
+                  { borderColor: category.color },
+                  editedAlarm.category === category.id && { backgroundColor: category.color }
+                ]}
+                onPress={() => selectCategory(category.id)}
+              >
+                <Text style={styles.categoryEmoji}>{category.icon}</Text>
+                <Text style={[
+                  styles.categoryName,
+                  editedAlarm.category === category.id && { color: 'white' }
+                ]}>
+                  {category.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Difficulty Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Wake-up Difficulty</Text>
+          <Text style={styles.sectionDescription}>How challenging should it be to dismiss the alarm?</Text>
+          <View style={styles.difficultyContainer}>
+            {DIFFICULTY_LEVELS.map((level) => (
+              <TouchableOpacity
+                key={level.id}
+                style={[
+                  styles.difficultyOption,
+                  { borderColor: level.color },
+                  editedAlarm.difficulty === level.id && { backgroundColor: level.color }
+                ]}
+                onPress={() => selectDifficulty(level.id)}
+              >
+                <Text style={[
+                  styles.difficultyName,
+                  editedAlarm.difficulty === level.id && { color: 'white' }
+                ]}>
+                  {level.name}
+                </Text>
+                <Text style={[
+                  styles.difficultyDescription,
+                  editedAlarm.difficulty === level.id && { color: 'white', opacity: 0.9 }
+                ]}>
+                  {level.description}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Volume and Audio Settings */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Audio Settings</Text>
+          
+          <View style={styles.settingRow}>
+            <Text style={styles.settingLabel}>Volume: {Math.round(editedAlarm.volume * 100)}%</Text>
+            <View style={styles.volumeButtons}>
+              {[0.3, 0.5, 0.8, 1.0].map(vol => (
+                <TouchableOpacity
+                  key={vol}
+                  style={[
+                    styles.volumeButton,
+                    editedAlarm.volume === vol && styles.volumeButtonActive
+                  ]}
+                  onPress={() => updateVolume(vol)}
+                >
+                  <Text style={[
+                    styles.volumeButtonText,
+                    editedAlarm.volume === vol && styles.volumeButtonTextActive
+                  ]}>
+                    {Math.round(vol * 100)}%
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.settingRow}>
+            <Text style={styles.settingLabel}>Fade-in Duration: {editedAlarm.fadeInDuration}s</Text>
+            <View style={styles.durationButtons}>
+              {[0, 15, 30, 60].map(duration => (
+                <TouchableOpacity
+                  key={duration}
+                  style={[
+                    styles.durationButton,
+                    editedAlarm.fadeInDuration === duration && styles.durationButtonActive
+                  ]}
+                  onPress={() => updateFadeInDuration(duration)}
+                >
+                  <Text style={[
+                    styles.durationButtonText,
+                    editedAlarm.fadeInDuration === duration && styles.durationButtonTextActive
+                  ]}>
+                    {duration}s
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Vibration</Text>
+              <Text style={styles.settingDescription}>Vibrate when alarm rings</Text>
+            </View>
+            <Switch
+              value={editedAlarm.vibrationEnabled}
+              onValueChange={updateVibrationEnabled}
+              trackColor={{ false: '#767577', true: COLORS.primary }}
+              thumbColor={editedAlarm.vibrationEnabled ? COLORS.accent : '#f4f3f4'}
+            />
+          </View>
+        </View>
+
+        {/* Snooze Settings */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Snooze Settings</Text>
+          <Text style={styles.sectionDescription}>Not recommended for maximum motivation!</Text>
+          
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Enable Snooze</Text>
+              <Text style={styles.settingDescription}>Allow snoozing this alarm</Text>
+            </View>
+            <Switch
+              value={editedAlarm.snoozeEnabled}
+              onValueChange={updateSnoozeEnabled}
+              trackColor={{ false: '#767577', true: COLORS.primary }}
+              thumbColor={editedAlarm.snoozeEnabled ? COLORS.accent : '#f4f3f4'}
+            />
+          </View>
+
+          {editedAlarm.snoozeEnabled && (
+            <>
+              <View style={styles.settingRow}>
+                <Text style={styles.settingLabel}>Snooze Duration: {editedAlarm.snoozeDuration} minutes</Text>
+                <View style={styles.durationButtons}>
+                  {[5, 9, 15, 20].map(duration => (
+                    <TouchableOpacity
+                      key={duration}
+                      style={[
+                        styles.durationButton,
+                        editedAlarm.snoozeDuration === duration && styles.durationButtonActive
+                      ]}
+                      onPress={() => updateSnoozeDuration(duration)}
+                    >
+                      <Text style={[
+                        styles.durationButtonText,
+                        editedAlarm.snoozeDuration === duration && styles.durationButtonTextActive
+                      ]}>
+                        {duration}m
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.settingRow}>
+                <Text style={styles.settingLabel}>Max Snoozes: {editedAlarm.maxSnoozes}</Text>
+                <View style={styles.durationButtons}>
+                  {[1, 3, 5, 10].map(max => (
+                    <TouchableOpacity
+                      key={max}
+                      style={[
+                        styles.durationButton,
+                        editedAlarm.maxSnoozes === max && styles.durationButtonActive
+                      ]}
+                      onPress={() => updateMaxSnoozes(max)}
+                    >
+                      <Text style={[
+                        styles.durationButtonText,
+                        editedAlarm.maxSnoozes === max && styles.durationButtonTextActive
+                      ]}>
+                        {max}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </>
+          )}
         </View>
 
         {/* Sound Selection Section */}
@@ -519,5 +780,117 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 15,
+    lineHeight: 20,
+  },
+  categoryContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  categoryOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 2,
+    backgroundColor: 'white',
+    minWidth: '45%',
+  },
+  categoryEmoji: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  categoryName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  difficultyContainer: {
+    gap: 10,
+  },
+  difficultyOption: {
+    padding: 15,
+    borderRadius: 10,
+    borderWidth: 2,
+    backgroundColor: 'white',
+  },
+  difficultyName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.text,
+    marginBottom: 5,
+  },
+  difficultyDescription: {
+    fontSize: 14,
+    color: '#666',
+  },
+  settingRow: {
+    marginBottom: 20,
+  },
+  settingLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 10,
+  },
+  settingInfo: {
+    flex: 1,
+  },
+  settingDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  volumeButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  volumeButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#E0E0E0',
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  volumeButtonActive: {
+    backgroundColor: COLORS.primary,
+  },
+  volumeButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  volumeButtonTextActive: {
+    color: 'white',
+  },
+  durationButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  durationButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#E0E0E0',
+    minWidth: 50,
+    alignItems: 'center',
+  },
+  durationButtonActive: {
+    backgroundColor: COLORS.primary,
+  },
+  durationButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  durationButtonTextActive: {
+    color: 'white',
   },
 }); 

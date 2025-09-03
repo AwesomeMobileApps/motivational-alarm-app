@@ -1,4 +1,4 @@
-import { AlarmSettings, MOTIVATIONAL_QUOTES } from '../types';
+import { AlarmSettings, MOTIVATIONAL_QUOTES, ALARM_CATEGORIES } from '../types';
 
 /**
  * Formats a Date object to a readable time string (HH:MM AM/PM)
@@ -18,6 +18,74 @@ export const formatDays = (days: number[]): string => {
   if (days.length === 2 && days.includes(0) && days.includes(6)) return 'Weekends';
   
   return days.map(day => dayNames[day]).join(', ');
+};
+
+/**
+ * Get motivational quote based on alarm category
+ */
+export const getMotivationalQuoteForCategory = (category: string): string => {
+  const categoryData = ALARM_CATEGORIES.find(cat => cat.id === category);
+  if (categoryData && categoryData.quotes.length > 0) {
+    const randomIndex = Math.floor(Math.random() * categoryData.quotes.length);
+    return categoryData.quotes[randomIndex];
+  }
+  return getRandomMotivationalQuote();
+};
+
+/**
+ * Generate a simple math problem for hard difficulty alarms
+ */
+export const generateMathProblem = (): { question: string; answer: number } => {
+  const operations = ['+', '-', '×'];
+  const operation = operations[Math.floor(Math.random() * operations.length)];
+  
+  let num1, num2, answer;
+  
+  switch (operation) {
+    case '+':
+      num1 = Math.floor(Math.random() * 50) + 10;
+      num2 = Math.floor(Math.random() * 50) + 10;
+      answer = num1 + num2;
+      break;
+    case '-':
+      num1 = Math.floor(Math.random() * 50) + 20;
+      num2 = Math.floor(Math.random() * (num1 - 10)) + 1;
+      answer = num1 - num2;
+      break;
+    case '×':
+      num1 = Math.floor(Math.random() * 12) + 2;
+      num2 = Math.floor(Math.random() * 12) + 2;
+      answer = num1 * num2;
+      break;
+    default:
+      num1 = 5;
+      num2 = 5;
+      answer = 10;
+  }
+  
+  return {
+    question: `${num1} ${operation} ${num2} = ?`,
+    answer
+  };
+};
+
+/**
+ * Get time until next alarm in human readable format
+ */
+export const getTimeUntilAlarm = (alarmTime: Date): string => {
+  const now = new Date();
+  const timeDiff = alarmTime.getTime() - now.getTime();
+  
+  if (timeDiff <= 0) return 'Now';
+  
+  const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+  const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  } else {
+    return `${minutes}m`;
+  }
 };
 
 /**
@@ -89,5 +157,13 @@ export const createDefaultAlarm = (): AlarmSettings => {
     label: 'Wake Up!',
     soundFile: 'motivational-speech.mp3',
     motivationalMessage: getRandomMotivationalQuote(),
+    volume: 0.8,
+    fadeInDuration: 30,
+    vibrationEnabled: true,
+    snoozeEnabled: false,
+    snoozeDuration: 9,
+    maxSnoozes: 3,
+    category: 'general',
+    difficulty: 'easy',
   };
 }; 

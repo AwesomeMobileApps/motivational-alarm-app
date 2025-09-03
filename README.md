@@ -1,14 +1,48 @@
-# Motivational Alarm App ☀️
+# Motivational Alarm App ☀️ ⏰
 
-A motivational wake-up alarm app built with TypeScript, Expo, and React Native. This app helps you start your day with positivity and motivation.
+A comprehensive motivational wake-up alarm app built with TypeScript, Expo, and React Native. This app helps you start your day with positivity, motivation, and the right energy to conquer your goals.
 
-## Features
+## ✨ Enhanced Features
 
-- Set multiple alarm times with custom labels
-- Repeat alarms on specific days of the week
-- Plays copyright-free motivational sounds when the alarm triggers
-- Displays motivational quotes and vibrant visuals to help you wake up energized
-- Beautiful, colorful UI with a focus on positivity and motivation
+### 🎯 Alarm Management
+- **Multiple alarm times** with custom labels and scheduling
+- **Smart repeat patterns** - weekdays, weekends, specific days, or daily
+- **Alarm categories** - Work & Productivity, Fitness & Health, Mindfulness & Peace, General Motivation
+- **Difficulty levels** - Easy tap, swipe patterns, or math problems to dismiss alarms
+- **Next alarm countdown** - always know when your next wake-up call is coming
+
+### 🎵 Audio & Motivation
+- **5 motivational sound options** - Copyright-free, energizing audio tracks
+- **Dynamic motivational quotes** - 20+ inspiring quotes that rotate during alarm
+- **Category-specific motivation** - Quotes tailored to your alarm's purpose
+- **Volume control** - Set perfect loudness for each alarm
+- **Fade-in audio** - Gradually increase volume for gentle wake-ups
+
+### 🎨 Themes & Customization
+- **4 beautiful themes** - Default (Golden), Sunrise (Orange), Ocean (Blue), Forest (Green)
+- **Night mode** - Darker interface for evening setup
+- **Customizable interface** - Personalize your wake-up experience
+- **Vibrant alarm screen** - Animated visuals with rotating sun and motivational content
+
+### 📊 Statistics & Tracking
+- **Success tracking** - Monitor your on-time wake-ups and streak days
+- **Weekly performance** - See your consistency over the past week
+- **Achievement system** - Unlock badges for maintaining good wake-up habits
+- **Detailed analytics** - Total alarms, success rate, snooze frequency, and more
+
+### ⚙️ Advanced Settings
+- **Snooze control** - Enable/disable with custom duration and limits (not recommended for motivation!)
+- **Vibration patterns** - Haptic feedback during alarms
+- **Gradual volume increase** - Slowly build up alarm volume
+- **Quote change intervals** - Control how often motivational messages rotate
+- **Fade-in duration** - Customize how gradually sound increases
+
+### 💪 Motivation Features
+- **No-snooze philosophy** - Designed to get you up on the first try
+- **Difficulty challenges** - Math problems, swipe patterns, or shake gestures
+- **Category-based content** - Fitness quotes for gym alarms, productivity quotes for work
+- **Streak tracking** - Build momentum with consecutive on-time wake-ups
+- **Achievement rewards** - Visual recognition for maintaining good habits
 
 ## Screenshots
 

@@ -11,10 +11,13 @@ import {
 import { AlarmSettings, COLORS } from '../types';
 import { AlarmListItem } from '../components/AlarmListItem';
 import { AlarmEditScreen } from './AlarmEditScreen';
+import { SettingsScreen } from './SettingsScreen';
+import { StatsScreen } from './StatsScreen';
 import { MotivationalAlarmScreen } from '../components/MotivationalAlarmScreen';
 import { useAlarms } from '../hooks/useAlarms';
 import { useActiveAlarm } from '../hooks/useActiveAlarm';
-import { formatTime } from '../utils/alarmUtils';
+import { useSettings } from '../hooks/useSettings';
+import { formatTime, getTimeUntilAlarm } from '../utils/alarmUtils';
 
 /**
  * Main home screen of the app - displays alarm list and manages screens
@@ -22,7 +25,12 @@ import { formatTime } from '../utils/alarmUtils';
 export const HomeScreen: React.FC = () => {
   // States for managing screens
   const [showEditScreen, setShowEditScreen] = useState(false);
+  const [showSettingsScreen, setShowSettingsScreen] = useState(false);
+  const [showStatsScreen, setShowStatsScreen] = useState(false);
   const [currentEditAlarm, setCurrentEditAlarm] = useState<AlarmSettings | null>(null);
+
+  // Load app settings
+  const { settings } = useSettings();
 
   // Load alarms from storage
   const { 
@@ -106,6 +114,22 @@ export const HomeScreen: React.FC = () => {
     );
   }
 
+  if (showStatsScreen) {
+    return (
+      <StatsScreen
+        onClose={() => setShowStatsScreen(false)}
+      />
+    );
+  }
+
+  if (showSettingsScreen) {
+    return (
+      <SettingsScreen
+        onClose={() => setShowSettingsScreen(false)}
+      />
+    );
+  }
+
   if (showEditScreen && currentEditAlarm) {
     return (
       <AlarmEditScreen
@@ -128,11 +152,28 @@ export const HomeScreen: React.FC = () => {
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
       <View style={styles.container}>
         <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.statsButton} 
+            onPress={() => setShowStatsScreen(true)}
+          >
+            <Text style={styles.statsText}>📊</Text>
+          </TouchableOpacity>
           <Text style={styles.title}>Motivational Alarm</Text>
+          <TouchableOpacity 
+            style={styles.settingsButton} 
+            onPress={() => setShowSettingsScreen(true)}
+          >
+            <Text style={styles.settingsText}>⚙️</Text>
+          </TouchableOpacity>
           {nextAlarmTime && (
-            <Text style={styles.nextAlarmText}>
-              Next alarm: {formatTime(nextAlarmTime)}
-            </Text>
+            <View style={styles.nextAlarmContainer}>
+              <Text style={styles.nextAlarmText}>
+                Next alarm: {formatTime(nextAlarmTime)}
+              </Text>
+              <Text style={styles.nextAlarmCountdown}>
+                in {getTimeUntilAlarm(nextAlarmTime)}
+              </Text>
+            </View>
           )}
         </View>
 
@@ -184,6 +225,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 5,
+    position: 'relative',
   },
   title: {
     fontSize: 28,
@@ -191,10 +233,49 @@ const styles = StyleSheet.create({
     color: 'white',
     marginBottom: 5,
   },
+  settingsButton: {
+    position: 'absolute',
+    top: 15,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  settingsText: {
+    fontSize: 20,
+    color: 'white',
+  },
+  statsButton: {
+    position: 'absolute',
+    top: 15,
+    left: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statsText: {
+    fontSize: 20,
+    color: 'white',
+  },
+  nextAlarmContainer: {
+    alignItems: 'center',
+  },
   nextAlarmText: {
     fontSize: 16,
     color: 'white',
     opacity: 0.9,
+  },
+  nextAlarmCountdown: {
+    fontSize: 14,
+    color: 'white',
+    opacity: 0.7,
+    marginTop: 2,
   },
   addButton: {
     backgroundColor: COLORS.primary,
